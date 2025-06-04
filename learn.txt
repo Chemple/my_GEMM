@@ -1,0 +1,19 @@
+1.collesced memory access -> threadIdx.x变动的方向和访存的方向一致
+2.制约occupancy的因素
+    1.thread per block(each SM has limited logical thread number)
+    2.shared memory per block(SM has limited shared memory)
+    3.register number per block(SM has limited register number)
+3.对于GEMM
+    1.shared memory优化主要是为了减少global memory访存(每个thread都要load A的一整行和B的一整列)(实际上未启用shared memory并未用到分块的思路,每个thread自己负责一部分)
+        启用shared memory优化之后, 每个block中的所有线程先执行load操作，之后的线程可以复用这些shared memory中的元素。
+        ⭕️未用shared memory之前global memory访问量为 2*M*N*K
+        ⭕️利用shared memory之后global memory访问量为:
+            block数: M * N / (BM * BN)
+            每个block的global memory访问: (BM * BK + BK * BN) * K / BK
+            所以global memory访问量为: M * N * K * (1/BM + 1/BN)
+    2.share memory优化后发现性能卡在shared memory access那里, 所以应该减少shared memory的访问。
+        所以就有了block_tiling_2D, 实际上是因为每个线程都有自己的很多寄存器资源, 
+        Arithmetic Intensity！！！Arithmetic Intensity！！！Arithmetic Intensity！！！
+
+
+some: 128bit load(确保在显存中是连续的即可)
